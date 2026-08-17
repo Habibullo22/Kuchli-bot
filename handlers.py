@@ -1,9 +1,10 @@
- from telebot import TeleBot
+from telebot import TeleBot
 from telebot.types import Message
 
 from config import ADMIN_ID
 from menu import main_menu
-from database import save_user
+from database import save_user, get_balance
+from payments import create_payment
 from telegram_client import client
 
 
@@ -11,7 +12,16 @@ def register_handlers(bot: TeleBot):
 
     @bot.message_handler(commands=["start"])
     def start(message: Message):
-        is_admin = message.from_user.id == ADMIN_ID
+        user = message.from_user
+
+        save_user(
+            user.id,
+            user.username,
+            user.first_name,
+            user.last_name
+        )
+
+        is_admin = user.id == ADMIN_ID
 
         bot.send_message(
             message.chat.id,
@@ -20,7 +30,9 @@ def register_handlers(bot: TeleBot):
             reply_markup=main_menu(is_admin)
         )
 
-    @bot.message_handler(func=lambda message: message.text == "🔎 Qidirish")
+    @bot.message_handler(
+        func=lambda message: message.text == "🔎 Qidirish"
+    )
     def search_button(message: Message):
         bot.send_message(
             message.chat.id,
@@ -30,48 +42,69 @@ def register_handlers(bot: TeleBot):
             "123456789"
         )
 
-
-    @bot.message_handler(func=lambda message: message.text == "👤 Profil")
+    @bot.message_handler(
+        func=lambda message: message.text == "👤 Profil"
+    )
     def profile(message: Message):
         user = message.from_user
 
+        name = user.first_name or "—"
+
+        username = (
+            f"@{user.username}"
+            if user.username
+            else "—"
+        )
+
+        balance = get_balance(user.id)
+
         bot.send_message(
             message.chat.id,
-            f"👤 Sizning profilingiz\n\n"
+            "👤 Profilingiz\n\n"
             f"🆔 ID: {user.id}\n"
-            f"👤 Ism: {user.first_name or '—'}\n"
-            f"🔗 Username: "
-            f"@{user.username}" if user.username else
-            f"🔗 Username: —"
+            f"👤 Ism: {name}\n"
+            f"🔗 Username: {username}\n"
+            f"💳 Balans: {balance:,} so‘m"
         )
 
-
-    @bot.message_handler(func=lambda message: message.text == "💳 Balans")
+    @bot.message_handler(
+        func=lambda message: message.text == "💳 Balans"
+    )
     def balance(message: Message):
+        amount = get_balance(message.from_user.id)
+
         bot.send_message(
             message.chat.id,
-            "💳 Balansingiz: 0 so‘m"
+            f"💳 Sizning balansingiz:\n\n"
+            f"💰 {amount:,} so‘m"
         )
 
-
-    @bot.message_handler(func=lambda message: message.text == "💰 Balansni to‘ldirish")
+    @bot.message_handler(
+        func=lambda message: message.text == "💰 Balansni to‘ldirish"
+    )
     def deposit(message: Message):
         bot.send_message(
             message.chat.id,
-            "💰 Balansni to‘ldirish bo‘limi\n\n"
-            "To‘lov tizimi keyingi bosqichda ulanadi."
+            "💰 Balansni to‘ldirish\n\n"
+            "Hozircha to‘lov usulini tanlash funksiyasi "
+            "tayyorlanmoqda.\n\n"
+            "Keyingi bosqichda Humo / Uzcard / boshqa "
+            "to‘lov usullarini ulaymiz."
         )
 
-
-    @bot.message_handler(func=lambda message: message.text == "📋 Qidiruvlarim")
+    @bot.message_handler(
+        func=lambda message: message.text == "📋 Qidiruvlarim"
+    )
     def history(message: Message):
         bot.send_message(
             message.chat.id,
-            "📋 Hozircha qidiruvlar tarixi bo‘sh."
+            "📋 Qidiruvlar tarixi\n\n"
+            "Hozircha qidiruvlar tarixi bo‘sh."
         )
 
-
-    @bot.message_handler(func=lambda message: message.text == "⚙️ Sozlamalar")
+    @bot.message_handler(
+        func=lambda message: message.text == "⚙️ Sozlamalar"
+    )
     def settings(message: Message):
         bot.send_message(
             message.chat.id,
@@ -79,9 +112,11 @@ def register_handlers(bot: TeleBot):
             "Hozircha sozlamalar mavjud emas."
         )
 
-
-    @bot.message_handler(func=lambda message: message.text == "👑 Admin panel")
+    @bot.message_handler(
+        func=lambda message: message.text == "👑 Admin panel"
+    )
     def admin_panel(message: Message):
+
         if message.from_user.id != ADMIN_ID:
             bot.send_message(
                 message.chat.id,
@@ -92,9 +127,10 @@ def register_handlers(bot: TeleBot):
         bot.send_message(
             message.chat.id,
             "👑 ADMIN PANEL\n\n"
-            "⚙️ Admin funksiyalari keyingi bosqichda qo‘shiladi."
+            "💳 To‘lovlarni boshqarish\n"
+            "👥 Foydalanuvchilar\n"
+            "📊 Statistika"
         )
-
 
     @bot.message_handler(func=lambda message: True)
     def search_user(message: Message):
