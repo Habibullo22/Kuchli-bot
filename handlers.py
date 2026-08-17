@@ -9,7 +9,7 @@ from database import (
     get_balance
 )
 
-from telegram_client import run_async
+from telegram_client import client, run_async
 
 
 def register_handlers(bot: TeleBot):
