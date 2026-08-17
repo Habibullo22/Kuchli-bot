@@ -1,14 +1,11 @@
 import threading
+import asyncio
 import telebot
 
 from config import BOT_TOKEN
 from database import init_db
 from handlers import register_handlers
-from telegram_client import (
-    client,
-    start_loop,
-    run_async
-)
+from telegram_client import client, start_loop
 
 
 if not BOT_TOKEN:
@@ -30,7 +27,7 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 
 # =========================
-# TELETHON LOOP
+# TELETHON
 # =========================
 
 telegram_thread = threading.Thread(
@@ -47,14 +44,21 @@ telegram_thread.start()
 
 print("📱 Telegram akkaunt ulanmoqda...")
 
-run_async(client.start())
 
-me = run_async(client.get_me())
+async def connect_telegram():
+    await client.start()
+    return await client.get_me()
+
+
+# Alohida asyncio loop orqali ulanamiz
+me = asyncio.run(connect_telegram())
+
 
 print()
 print("================================")
 print("✅ TELEGRAM AKKAUNT ULANDI")
 print("================================")
+
 print(f"👤 Ism: {me.first_name}")
 print(f"🆔 ID: {me.id}")
 
