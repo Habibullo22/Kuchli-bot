@@ -3,15 +3,24 @@ from telebot.types import Message
 
 from config import ADMIN_ID
 from menu import main_menu
-from database import save_user, get_balance
-from payments import create_payment
-from telegram_client import client
+
+from database import (
+    save_user,
+    get_balance
+)
+
+from telegram_client import run_async
 
 
 def register_handlers(bot: TeleBot):
 
+    # =========================
+    # START
+    # =========================
+
     @bot.message_handler(commands=["start"])
     def start(message: Message):
+
         user = message.from_user
 
         save_user(
@@ -30,10 +39,17 @@ def register_handlers(bot: TeleBot):
             reply_markup=main_menu(is_admin)
         )
 
+
+    # =========================
+    # SEARCH BUTTON
+    # =========================
+
     @bot.message_handler(
-        func=lambda message: message.text == "🔎 Qidirish"
+        func=lambda message:
+        message.text == "🔎 Qidirish"
     )
     def search_button(message: Message):
+
         bot.send_message(
             message.chat.id,
             "🔎 Username yoki Telegram ID yuboring.\n\n"
@@ -42,86 +58,127 @@ def register_handlers(bot: TeleBot):
             "123456789"
         )
 
+
+    # =========================
+    # PROFILE
+    # =========================
+
     @bot.message_handler(
-        func=lambda message: message.text == "👤 Profil"
+        func=lambda message:
+        message.text == "👤 Profil"
     )
     def profile(message: Message):
+
         user = message.from_user
 
         name = user.first_name or "—"
 
-        username = (
-            f"@{user.username}"
-            if user.username
-            else "—"
-        )
+        if user.username:
+            username = f"@{user.username}"
+        else:
+            username = "—"
 
         balance = get_balance(user.id)
 
         bot.send_message(
             message.chat.id,
-            "👤 Profilingiz\n\n"
+            "👤 PROFIL\n\n"
             f"🆔 ID: {user.id}\n"
             f"👤 Ism: {name}\n"
             f"🔗 Username: {username}\n"
             f"💳 Balans: {balance:,} so‘m"
         )
 
+
+    # =========================
+    # BALANCE
+    # =========================
+
     @bot.message_handler(
-        func=lambda message: message.text == "💳 Balans"
+        func=lambda message:
+        message.text == "💳 Balans"
     )
     def balance(message: Message):
-        amount = get_balance(message.from_user.id)
+
+        amount = get_balance(
+            message.from_user.id
+        )
 
         bot.send_message(
             message.chat.id,
-            f"💳 Sizning balansingiz:\n\n"
+            "💳 BALANS\n\n"
             f"💰 {amount:,} so‘m"
         )
 
-    @bot.message_handler(
-        func=lambda message: message.text == "💰 Balansni to‘ldirish"
-    )
-    def deposit(message: Message):
-        bot.send_message(
-            message.chat.id,
-            "💰 Balansni to‘ldirish\n\n"
-            "Hozircha to‘lov usulini tanlash funksiyasi "
-            "tayyorlanmoqda.\n\n"
-            "Keyingi bosqichda Humo / Uzcard / boshqa "
-            "to‘lov usullarini ulaymiz."
-        )
+
+    # =========================
+    # DEPOSIT
+    # =========================
 
     @bot.message_handler(
-        func=lambda message: message.text == "📋 Qidiruvlarim"
+        func=lambda message:
+        message.text == "💰 Balansni to‘ldirish"
     )
-    def history(message: Message):
+    def deposit(message: Message):
+
         bot.send_message(
             message.chat.id,
-            "📋 Qidiruvlar tarixi\n\n"
+            "💰 BALANSNI TO‘LDIRISH\n\n"
+            "To‘lov tizimi keyingi bosqichda ulanadi."
+        )
+
+
+    # =========================
+    # HISTORY
+    # =========================
+
+    @bot.message_handler(
+        func=lambda message:
+        message.text == "📋 Qidiruvlarim"
+    )
+    def history(message: Message):
+
+        bot.send_message(
+            message.chat.id,
+            "📋 QIDIRUVLARIM\n\n"
             "Hozircha qidiruvlar tarixi bo‘sh."
         )
 
+
+    # =========================
+    # SETTINGS
+    # =========================
+
     @bot.message_handler(
-        func=lambda message: message.text == "⚙️ Sozlamalar"
+        func=lambda message:
+        message.text == "⚙️ Sozlamalar"
     )
     def settings(message: Message):
+
         bot.send_message(
             message.chat.id,
-            "⚙️ Sozlamalar\n\n"
+            "⚙️ SOZLAMALAR\n\n"
             "Hozircha sozlamalar mavjud emas."
         )
 
+
+    # =========================
+    # ADMIN PANEL
+    # =========================
+
     @bot.message_handler(
-        func=lambda message: message.text == "👑 Admin panel"
+        func=lambda message:
+        message.text == "👑 Admin panel"
     )
     def admin_panel(message: Message):
 
         if message.from_user.id != ADMIN_ID:
+
             bot.send_message(
                 message.chat.id,
                 "❌ Sizda admin huquqi yo‘q."
             )
+
             return
 
         bot.send_message(
@@ -132,12 +189,33 @@ def register_handlers(bot: TeleBot):
             "📊 Statistika"
         )
 
-    @bot.message_handler(func=lambda message: True)
+
+    # =========================
+    # USER SEARCH
+    # =========================
+
+    @bot.message_handler(
+        func=lambda message: True
+    )
     def search_user(message: Message):
 
         query = message.text.strip()
 
         if not query:
+            return
+
+        # Menyu tugmalarini qidiruvga yubormaslik
+        menu_buttons = [
+            "🔎 Qidirish",
+            "👤 Profil",
+            "📋 Qidiruvlarim",
+            "💳 Balans",
+            "💰 Balansni to‘ldirish",
+            "⚙️ Sozlamalar",
+            "👑 Admin panel"
+        ]
+
+        if query in menu_buttons:
             return
 
         bot.send_message(
@@ -146,14 +224,35 @@ def register_handlers(bot: TeleBot):
         )
 
         try:
-            user = client.loop.run_until_complete(
+
+            # Telegram API orqali entity olish
+            user = run_async(
                 client.get_entity(query)
             )
 
-            user_id = getattr(user, "id", None)
-            username = getattr(user, "username", None)
-            first_name = getattr(user, "first_name", None)
-            last_name = getattr(user, "last_name", None)
+            user_id = getattr(
+                user,
+                "id",
+                None
+            )
+
+            username = getattr(
+                user,
+                "username",
+                None
+            )
+
+            first_name = getattr(
+                user,
+                "first_name",
+                None
+            )
+
+            last_name = getattr(
+                user,
+                "last_name",
+                None
+            )
 
             save_user(
                 user_id,
@@ -162,30 +261,42 @@ def register_handlers(bot: TeleBot):
                 last_name
             )
 
-            name = " ".join(
-                x for x in [first_name, last_name]
-                if x
-            ) or "—"
+            name_parts = [
+                first_name,
+                last_name
+            ]
 
-            username_text = (
-                f"@{username}"
-                if username
-                else "—"
+            name = " ".join(
+                x for x in name_parts
+                if x
             )
+
+            if not name:
+                name = "—"
+
+            if username:
+                username_text = f"@{username}"
+            else:
+                username_text = "—"
 
             bot.send_message(
                 message.chat.id,
-                "✅ Ma’lumot topildi!\n\n"
+                "✅ MA'LUMOT TOPILDI!\n\n"
                 f"👤 Ism: {name}\n"
                 f"🔗 Username: {username_text}\n"
                 f"🆔 ID: {user_id}"
             )
 
         except Exception as e:
-            print("Search error:", e)
+
+            print(
+                f"❌ Search error: {e}"
+            )
 
             bot.send_message(
                 message.chat.id,
-                "❌ Ma’lumot topilmadi yoki Telegram "
-                "bu ma’lumotni olishga ruxsat bermadi."
+                "❌ Ma'lumot topilmadi.\n\n"
+                "Username yoki ID noto‘g‘ri bo‘lishi "
+                "mumkin yoki Telegram bu ma’lumotni "
+                "olishga ruxsat bermagan."
             )
